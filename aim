@@ -176,6 +176,13 @@ local function updateAllESP()
     end
 end
 
+local function refreshESP()
+    while espEnabled do
+        updateAllESP()
+        wait(5)
+    end
+end
+
 -- Target Lock variables and functions
 local lockEnabled = false
 local lockedPlayer = nil
@@ -230,6 +237,9 @@ local function toggleESP()
     espEnabled = not espEnabled
     espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
     updateAllESP()
+    if espEnabled then
+        spawn(refreshESP)
+    end
 end
 
 local function toggleLock()
@@ -247,4 +257,10 @@ end
 espButton.MouseButton1Click:Connect(toggleESP)
 lockButton.MouseButton1Click:Connect(toggleLock)
 minimizeButton.MouseButton1Click:Connect(toggleMinimize)
-minimizedButton.MouseButton1Click:
+minimizedButton.MouseButton1Click:Connect(toggleMinimize)
+
+-- Run aim lock
+RunService.RenderStepped:Connect(updateTargetLock)
+
+-- Ensure ESP refreshes periodically
+updateAllESP()
