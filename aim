@@ -37,6 +37,8 @@ espButton.TextScaled = true
 espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 espButton.Font = Enum.Font.SourceSansBold
 espButton.Parent = frame
+espButton.Active = true
+espButton.Selectable = true
 
 local lockButton = Instance.new("TextButton")
 lockButton.Size = UDim2.new(1, -20, 0, 30)
@@ -47,6 +49,8 @@ lockButton.TextScaled = true
 lockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 lockButton.Font = Enum.Font.SourceSansBold
 lockButton.Parent = frame
+lockButton.Active = true
+lockButton.Selectable = true
 
 local minimizeButton = Instance.new("TextButton")
 minimizeButton.Size = UDim2.new(1, -20, 0, 30)
@@ -57,6 +61,8 @@ minimizeButton.TextScaled = true
 minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 minimizeButton.Font = Enum.Font.SourceSansBold
 minimizeButton.Parent = frame
+minimizeButton.Active = true
+minimizeButton.Selectable = true
 
 local UICornerButton1 = Instance.new("UICorner")
 UICornerButton1.CornerRadius = UDim.new(0, 10)
@@ -220,11 +226,8 @@ local function smoothAim(targetPosition)
     local startTime = tick()
     
     RunService.RenderStepped:Connect(function()
-        if lockEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local elapsed = tick() - startTime
-            local alpha = math.min(elapsed / aimSpeed, 1)
-            Camera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
-        end
+        local elapsed = (tick() - startTime) / aimSpeed
+        Camera.CFrame = currentCFrame:Lerp(targetCFrame, elapsed)
     end)
 end
 
