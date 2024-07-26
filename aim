@@ -1,17 +1,10 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Camera = workspace.CurrentCamera
-
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 180)
+frame.Size = UDim2.new(0, 180, 0, 150)  -- Reduced size
 frame.AnchorPoint = Vector2.new(1, 0)
 frame.Position = UDim2.new(1, -10, 0, 10)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -19,12 +12,12 @@ frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
+corner.CornerRadius = UDim.new(0, 8)  -- Slightly smaller corner radius
 corner.Parent = frame
 
 local function createButton(text, position)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -20, 0, 40)
+    button.Size = UDim2.new(1, -16, 0, 30)  -- Reduced height and width
     button.Position = position
     button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     button.Text = text
@@ -33,20 +26,20 @@ local function createButton(text, position)
     button.Parent = frame
     
     local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 5)
+    buttonCorner.CornerRadius = UDim.new(0, 4)  -- Smaller corner radius for buttons
     buttonCorner.Parent = button
     
     return button
 end
 
-local aimbotButton = createButton("Aimbot: OFF", UDim2.new(0, 10, 0, 10))
-local teamCheckButton = createButton("Team Check: OFF", UDim2.new(0, 10, 0, 55))
-local espButton = createButton("ESP: OFF", UDim2.new(0, 10, 0, 100))
-local minimizeButton = createButton("Minimize", UDim2.new(0, 10, 0, 145))
+local aimbotButton = createButton("Aimbot: OFF", UDim2.new(0, 8, 0, 8))
+local teamCheckButton = createButton("Team Check: OFF", UDim2.new(0, 8, 0, 42))
+local espButton = createButton("ESP: OFF", UDim2.new(0, 8, 0, 76))
+local minimizeButton = createButton("Minimize", UDim2.new(0, 8, 0, 110))
 
 -- Minimized GUI
 local minimizedButton = Instance.new("TextButton")
-minimizedButton.Size = UDim2.new(0, 50, 0, 50)
+minimizedButton.Size = UDim2.new(0, 40, 0, 40)  -- Smaller minimized button
 minimizedButton.AnchorPoint = Vector2.new(1, 0)
 minimizedButton.Position = frame.Position
 minimizedButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -57,175 +50,5 @@ minimizedButton.Visible = false
 minimizedButton.Parent = screenGui
 
 local minimizedCorner = Instance.new("UICorner")
-minimizedCorner.CornerRadius = UDim.new(0, 10)
+minimizedCorner.CornerRadius = UDim.new(0, 8)
 minimizedCorner.Parent = minimizedButton
-
--- Dragging functionality
-local dragging
-local dragStart
-local startPos
-local lastPos
-
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    local newPosition = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    
-    local guiSize = frame.Visible and frame.AbsoluteSize or minimizedButton.AbsoluteSize
-    local screenSize = workspace.CurrentCamera.ViewportSize
-    
-    newPosition = UDim2.new(
-        newPosition.X.Scale,
-        math.clamp(newPosition.X.Offset, 0, screenSize.X - guiSize.X),
-        newPosition.Y.Scale,
-        math.clamp(newPosition.Y.Offset, 0, screenSize.Y - guiSize.Y)
-    )
-    
-    lastPos = newPosition
-    
-    if frame.Visible then
-        frame.Position = newPosition
-    else
-        minimizedButton.Position = newPosition
-    end
-end
-
-local function onInputBegan(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Visible and frame.Position or minimizedButton.Position
-        lastPos = startPos
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end
-
-local function onInputChanged(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        updateDrag(input)
-    end
-end
-
-frame.InputBegan:Connect(onInputBegan)
-minimizedButton.InputBegan:Connect(onInputBegan)
-UserInputService.InputChanged:Connect(onInputChanged)
-
--- Aimbot variables
-local aimbotEnabled = false
-local teamCheckEnabled = false
-local espEnabled = false
-local aimPart = "Head"
-local sensitivity = 0.2
-
-local function isTeamMate(player)
-    return player.Team == LocalPlayer.Team and player.TeamColor == LocalPlayer.TeamColor
-end
-
-local function getClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(aimPart) then
-            if teamCheckEnabled and isTeamMate(player) then
-                continue
-            end
-            local distance = (player.Character[aimPart].Position - Camera.CFrame.Position).Magnitude
-            if distance < shortestDistance then
-                closestPlayer = player
-                shortestDistance = distance
-            end
-        end
-    end
-
-    return closestPlayer
-end
-
-local function updateAimbot(deltaTime)
-    if aimbotEnabled and LocalPlayer.Character then
-        local targetPlayer = getClosestPlayer()
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(aimPart) then
-            local targetPos = targetPlayer.Character[aimPart].Position
-            local cameraPos = Camera.CFrame.Position
-            local newCFrame = CFrame.new(cameraPos, targetPos)
-            
-            Camera.CFrame = Camera.CFrame:Lerp(newCFrame, sensitivity * deltaTime * 60)
-        end
-    end
-end
-
--- ESP functionality
-local function createESPBox(player)
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = player.Name .. "_ESP"
-    box.Adornee = player.Character
-    box.AlwaysOnTop = true
-    box.ZIndex = 10
-    box.Size = player.Character:GetExtentsSize()
-    box.Transparency = 0.7
-    box.Color3 = player.TeamColor.Color
-    box.Parent = player.Character.PrimaryPart
-    return box
-end
-
-local function updateESP()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("PrimaryPart") then
-            local existingESP = player.Character.PrimaryPart:FindFirstChild(player.Name .. "_ESP")
-            if espEnabled then
-                if not existingESP then
-                    createESPBox(player)
-                else
-                    existingESP.Color3 = player.TeamColor.Color
-                end
-            elseif existingESP then
-                existingESP:Destroy()
-            end
-        end
-    end
-end
-
--- Toggle functions
-local function toggleAimbot()
-    aimbotEnabled = not aimbotEnabled
-    aimbotButton.Text = aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
-end
-
-local function toggleTeamCheck()
-    teamCheckEnabled = not teamCheckEnabled
-    teamCheckButton.Text = teamCheckEnabled and "Team Check: ON" or "Team Check: OFF"
-end
-
-local function toggleESP()
-    espEnabled = not espEnabled
-    espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-    updateESP()
-end
-
-local function toggleMinimize()
-    frame.Visible = not frame.Visible
-    minimizedButton.Visible = not minimizedButton.Visible
-    
-    if frame.Visible then
-        frame.Position = lastPos
-    else
-        minimizedButton.Position = lastPos
-    end
-end
-
--- Connect buttons
-aimbotButton.MouseButton1Click:Connect(toggleAimbot)
-teamCheckButton.MouseButton1Click:Connect(toggleTeamCheck)
-espButton.MouseButton1Click:Connect(toggleESP)
-minimizeButton.MouseButton1Click:Connect(toggleMinimize)
-minimizedButton.MouseButton1Click:Connect(toggleMinimize)
-
--- Main update loop
-RunService.RenderStepped:Connect(function(deltaTime)
-    updateAimbot(deltaTime)
-    updateESP()
-end)
