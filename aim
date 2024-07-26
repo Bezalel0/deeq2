@@ -227,7 +227,7 @@ local function smoothAim(targetPosition)
     
     RunService.RenderStepped:Connect(function()
         local elapsed = (tick() - startTime) / aimSpeed
-        Camera.CFrame = currentCFrame:Lerp(targetCFrame, elapsed)
+        Camera.CFrame = currentCFrame:Lerp(targetCFrame, math.clamp(elapsed, 0, 1))
     end)
 end
 
