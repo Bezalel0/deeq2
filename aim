@@ -1,3 +1,50 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Camera = workspace.CurrentCamera
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 120, 0, 100)
+frame.AnchorPoint = Vector2.new(1, 0)
+frame.Position = UDim2.new(1, -10, 0, 10)
+frame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+frame.BackgroundTransparency = 0.5
+frame.Parent = screenGui
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(1, -10, 0, 30)
+espButton.Position = UDim2.new(0, 5, 0, 5)
+espButton.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
+espButton.Text = "ESP: OFF"
+espButton.TextScaled = true
+espButton.Parent = frame
+local lockButton = Instance.new("TextButton")
+lockButton.Size = UDim2.new(1, -10, 0, 30)
+lockButton.Position = UDim2.new(0, 5, 0, 40)
+lockButton.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
+lockButton.Text = "Lock: OFF"
+lockButton.TextScaled = true
+lockButton.Parent = frame
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(1, -10, 0, 20)
+minimizeButton.Position = UDim2.new(0, 5, 1, -25)
+minimizeButton.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
+minimizeButton.Text = "Minimize"
+minimizeButton.TextScaled = true
+minimizeButton.Parent = frame
+-- Minimized GUI
+local minimizedButton = Instance.new("TextButton")
+minimizedButton.Size = UDim2.new(0, 40, 0, 40)
+minimizedButton.AnchorPoint = Vector2.new(1, 0)
+minimizedButton.Position = frame.Position
+minimizedButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+minimizedButton.BackgroundTransparency = 0.5
+minimizedButton.Text = "+"
+minimizedButton.TextScaled = true
 minimizedButton.Visible = false
 minimizedButton.Parent = screenGui
 
@@ -6,7 +53,10 @@ minimizedButton.Parent = screenGui
 local dragging
 local dragInput
 local dragStart
-@@ -66,7 +66,7 @@ local function update(input)
+local startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     minimizedButton.Position = frame.Position
 end
 
@@ -15,7 +65,10 @@ frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-@@ -78,35 +78,21 @@ local function onInputBegan(input)
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
         end)
     end
@@ -62,7 +115,39 @@ end)
 local espEnabled = false
 local espObjects = {}
 
-@@ -150,9 +136,9 @@ local function updateAllESP()
+local function updateESP(player)
+    if not espEnabled then return end
+    local character = player.Character
+    if not character then return end
+    local esp = espObjects[player]
+    if not esp then
+        esp = Instance.new("Highlight")
+        esp.FillColor = Color3.new(0, 1, 0)  -- Green color
+        esp.FillTransparency = 0.5
+        esp.OutlineColor = Color3.new(1, 1, 0)  -- Yellow outline
+        esp.OutlineTransparency = 0
+        esp.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop  -- Visible through walls
+        espObjects[player] = esp
+    end
+    esp.Adornee = character
+    esp.Parent = character
+end
+local function removeESP(player)
+    local esp = espObjects[player]
+    if esp then
+        esp:Destroy()
+        espObjects[player] = nil
+    end
+end
+local function updateAllESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if espEnabled then
+                updateESP(player)
+            else
+                removeESP(player)
+            end
+        end
     end
 end
 
@@ -74,7 +159,18 @@ local lockedPlayer = nil
 
 local function getClosestPlayer()
     local closestPlayer = nil
-@@ -173,17 +159,27 @@ end
+    local shortestDistance = math.huge
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                closestPlayer = player
+                shortestDistance = distance
+            end
+        end
+    end
+    return closestPlayer
+end
 
 local function updateTargetLock()
     if lockEnabled and LocalPlayer.Character then
@@ -108,3 +204,25 @@ end)
 -- Toggle functions
 local function toggleESP()
     espEnabled = not espEnabled
+    espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+    updateAllESP()
+end
+local function toggleLock()
+    lockEnabled = not lockEnabled
+    lockButton.Text = lockEnabled and "Lock: ON" or "Lock: OFF"
+end
+-- Minimize/Maximize function
+local function toggleMinimize()
+    frame.Visible = not frame.Visible
+    minimizedButton.Visible = not minimizedButton.Visible
+end
+-- Connect buttons
+espButton.MouseButton1Click:Connect(toggleESP)
+lockButton.MouseButton1Click:Connect(toggleLock)
+minimizeButton.MouseButton1Click:Connect(toggleMinimize)
+minimizedButton.MouseButton1Click:Connect(toggleMinimize)
+-- Main update loop
+RunService.RenderStepped:Connect(function()
+    updateAllESP()
+    updateTargetLock()
+end)
