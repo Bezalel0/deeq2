@@ -11,94 +11,48 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 160, 0, 180)
+frame.Size = UDim2.new(0, 120, 0, 100)
 frame.AnchorPoint = Vector2.new(1, 0)
-frame.Position = UDim2.new(1, -20, 0, 20)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.BackgroundTransparency = 0.4
-frame.BorderSizePixel = 0
+frame.Position = UDim2.new(1, -10, 0, 10)
+frame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+frame.BackgroundTransparency = 0.5
 frame.Parent = screenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = frame
-
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(60, 60, 60)
-UIStroke.Parent = frame
-
 local espButton = Instance.new("TextButton")
-espButton.Size = UDim2.new(1, -20, 0, 30)
-espButton.Position = UDim2.new(0, 10, 0, 10)
-espButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+espButton.Size = UDim2.new(1, -10, 0, 30)
+espButton.Position = UDim2.new(0, 5, 0, 5)
+espButton.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
 espButton.Text = "ESP: OFF"
 espButton.TextScaled = true
-espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-espButton.Font = Enum.Font.SourceSansBold
 espButton.Parent = frame
-espButton.Active = true
-espButton.Selectable = true
 
 local lockButton = Instance.new("TextButton")
-lockButton.Size = UDim2.new(1, -20, 0, 30)
-lockButton.Position = UDim2.new(0, 10, 0, 50)
-lockButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+lockButton.Size = UDim2.new(1, -10, 0, 30)
+lockButton.Position = UDim2.new(0, 5, 0, 40)
+lockButton.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
 lockButton.Text = "Lock: OFF"
 lockButton.TextScaled = true
-lockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-lockButton.Font = Enum.Font.SourceSansBold
 lockButton.Parent = frame
-lockButton.Active = true
-lockButton.Selectable = true
 
 local minimizeButton = Instance.new("TextButton")
-minimizeButton.Size = UDim2.new(1, -20, 0, 30)
-minimizeButton.Position = UDim2.new(0, 10, 0, 90)
-minimizeButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+minimizeButton.Size = UDim2.new(1, -10, 0, 20)
+minimizeButton.Position = UDim2.new(0, 5, 1, -25)
+minimizeButton.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
 minimizeButton.Text = "Minimize"
 minimizeButton.TextScaled = true
-minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeButton.Font = Enum.Font.SourceSansBold
 minimizeButton.Parent = frame
-minimizeButton.Active = true
-minimizeButton.Selectable = true
-
-local UICornerButton1 = Instance.new("UICorner")
-UICornerButton1.CornerRadius = UDim.new(0, 10)
-UICornerButton1.Parent = espButton
-
-local UICornerButton2 = Instance.new("UICorner")
-UICornerButton2.CornerRadius = UDim.new(0, 10)
-UICornerButton2.Parent = lockButton
-
-local UICornerButton3 = Instance.new("UICorner")
-UICornerButton3.CornerRadius = UDim.new(0, 10)
-UICornerButton3.Parent = minimizeButton
 
 -- Minimized GUI
 local minimizedButton = Instance.new("TextButton")
 minimizedButton.Size = UDim2.new(0, 40, 0, 40)
 minimizedButton.AnchorPoint = Vector2.new(1, 0)
 minimizedButton.Position = frame.Position
-minimizedButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-minimizedButton.BackgroundTransparency = 0.4
-minimizedButton.BorderSizePixel = 0
+minimizedButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+minimizedButton.BackgroundTransparency = 0.5
 minimizedButton.Text = "+"
 minimizedButton.TextScaled = true
-minimizedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizedButton.Font = Enum.Font.SourceSansBold
 minimizedButton.Visible = false
 minimizedButton.Parent = screenGui
-
-local UICornerMinimized = Instance.new("UICorner")
-UICornerMinimized.CornerRadius = UDim.new(0, 10)
-UICornerMinimized.Parent = minimizedButton
-
-local UIStrokeMinimized = Instance.new("UIStroke")
-UIStrokeMinimized.Thickness = 2
-UIStrokeMinimized.Color = Color3.fromRGB(60, 60, 60)
-UIStrokeMinimized.Parent = minimizedButton
 
 -- Make GUI draggable
 local dragging
@@ -182,18 +136,10 @@ local function updateAllESP()
     end
 end
 
-local function refreshESP()
-    while espEnabled do
-        updateAllESP()
-        wait(5)
-    end
-end
-
 -- Target Lock variables and functions
 local lockEnabled = false
 local lockedPlayer = nil
-local aimFOV = 60  -- Field of View for aiming
-local aimSpeed = 0.1  -- Speed of aiming transition (lower is faster)
+local smoothSpeed = 0.1  -- Speed of the camera movement
 
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -201,18 +147,10 @@ local function getClosestPlayer()
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local rootPart = player.Character.HumanoidRootPart
-            local screenPos, onScreen = Camera:WorldToScreenPoint(rootPart.Position)
-            
-            if onScreen then
-                local mousePos = UserInputService:GetMouseLocation()
-                local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                local fovDistance = distance <= (aimFOV / 2)
-                
-                if fovDistance and distance < shortestDistance then
-                    closestPlayer = player
-                    shortestDistance = distance
-                end
+            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                closestPlayer = player
+                shortestDistance = distance
             end
         end
     end
@@ -220,23 +158,16 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
-local function smoothAim(targetPosition)
-    local currentCFrame = Camera.CFrame
-    local targetCFrame = CFrame.new(currentCFrame.Position, targetPosition)
-    local startTime = tick()
-    
-    RunService.RenderStepped:Connect(function()
-        local elapsed = (tick() - startTime) / aimSpeed
-        Camera.CFrame = currentCFrame:Lerp(targetCFrame, elapsed)
-    end)
-end
-
 local function updateTargetLock()
     if lockEnabled and LocalPlayer.Character then
         lockedPlayer = getClosestPlayer()
         if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
-            smoothAim(targetPosition)
+            local targetPos = lockedPlayer.Character.HumanoidRootPart.Position
+            local cameraPos = Camera.CFrame.Position
+            local lookAt = CFrame.new(cameraPos, targetPos)
+
+            -- Smoothly interpolate camera's CFrame to target position
+            Camera.CFrame = Camera.CFrame:Lerp(lookAt, smoothSpeed)
         end
     else
         lockedPlayer = nil
@@ -259,11 +190,7 @@ end)
 local function toggleESP()
     espEnabled = not espEnabled
     espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-    if espEnabled then
-        refreshESP()
-    else
-        updateAllESP()
-    end
+    updateAllESP()
 end
 
 local function toggleLock()
