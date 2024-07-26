@@ -189,15 +189,14 @@ local function refreshESP()
     end
 end
 
--- Target Lock variables and functions
+-- Simple Aimbot functionality
 local lockEnabled = false
-local lockedPlayer = nil
-local aimFOV = 60  -- Field of View for aiming
-local aimSpeed = 0.1  -- Speed of aiming transition (lower is faster)
+local lockFOV = 60 -- Field of View for aiming
+local aimSpeed = 0.1 -- Speed of aiming transition (lower is faster)
 
 local function getClosestPlayer()
     local closestPlayer = nil
-    local shortestDistance = math.huge
+    local shortestDistance = lockFOV -- Adjust FOV to control how far the aimbot will work
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -207,9 +206,8 @@ local function getClosestPlayer()
             if onScreen then
                 local mousePos = UserInputService:GetMouseLocation()
                 local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                local fovDistance = distance <= (aimFOV / 2)
                 
-                if fovDistance and distance < shortestDistance then
+                if distance < shortestDistance then
                     closestPlayer = player
                     shortestDistance = distance
                 end
@@ -233,13 +231,11 @@ end
 
 local function updateTargetLock()
     if lockEnabled and LocalPlayer.Character then
-        lockedPlayer = getClosestPlayer()
-        if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
+        local closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
             smoothAim(targetPosition)
         end
-    else
-        lockedPlayer = nil
     end
 end
 
