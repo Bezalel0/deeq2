@@ -11,39 +11,54 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 120)
+frame.Size = UDim2.new(0, 220, 0, 180)
 frame.AnchorPoint = Vector2.new(1, 0)
 frame.Position = UDim2.new(1, -10, 0, 10)
-frame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-frame.BackgroundTransparency = 0.5
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
 frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
 
 local function createButton(text, position)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 30)
+    button.Size = UDim2.new(1, -20, 0, 40)
     button.Position = position
-    button.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
+    button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     button.Text = text
+    button.TextColor3 = Color3.new(1, 1, 1)
     button.TextScaled = true
     button.Parent = frame
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 5)
+    buttonCorner.Parent = button
+    
     return button
 end
 
-local aimbotButton = createButton("Aimbot: OFF", UDim2.new(0, 5, 0, 5))
-local teamCheckButton = createButton("Team Check: OFF", UDim2.new(0, 5, 0, 40))
-local minimizeButton = createButton("Minimize", UDim2.new(0, 5, 0, 75))
+local aimbotButton = createButton("Aimbot: OFF", UDim2.new(0, 10, 0, 10))
+local teamCheckButton = createButton("Team Check: OFF", UDim2.new(0, 10, 0, 55))
+local espButton = createButton("ESP: OFF", UDim2.new(0, 10, 0, 100))
+local minimizeButton = createButton("Minimize", UDim2.new(0, 10, 0, 145))
 
 -- Minimized GUI
 local minimizedButton = Instance.new("TextButton")
-minimizedButton.Size = UDim2.new(0, 40, 0, 40)
+minimizedButton.Size = UDim2.new(0, 50, 0, 50)
 minimizedButton.AnchorPoint = Vector2.new(1, 0)
 minimizedButton.Position = frame.Position
-minimizedButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-minimizedButton.BackgroundTransparency = 0.5
+minimizedButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 minimizedButton.Text = "+"
+minimizedButton.TextColor3 = Color3.new(1, 1, 1)
 minimizedButton.TextScaled = true
 minimizedButton.Visible = false
 minimizedButton.Parent = screenGui
+
+local minimizedCorner = Instance.new("UICorner")
+minimizedCorner.CornerRadius = UDim.new(0, 10)
+minimizedCorner.Parent = minimizedButton
 
 -- Dragging functionality
 local dragging
@@ -102,11 +117,12 @@ UserInputService.InputChanged:Connect(onInputChanged)
 -- Aimbot variables
 local aimbotEnabled = false
 local teamCheckEnabled = false
+local espEnabled = false
 local aimPart = "Head"
 local sensitivity = 0.2
 
 local function isTeamMate(player)
-    return player.Team == LocalPlayer.Team
+    return player.Team == LocalPlayer.Team and player.TeamColor == LocalPlayer.TeamColor
 end
 
 local function getClosestPlayer()
@@ -142,6 +158,37 @@ local function updateAimbot(deltaTime)
     end
 end
 
+-- ESP functionality
+local function createESPBox(player)
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = player.Name .. "_ESP"
+    box.Adornee = player.Character
+    box.AlwaysOnTop = true
+    box.ZIndex = 10
+    box.Size = player.Character:GetExtentsSize()
+    box.Transparency = 0.7
+    box.Color3 = player.TeamColor.Color
+    box.Parent = player.Character.PrimaryPart
+    return box
+end
+
+local function updateESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("PrimaryPart") then
+            local existingESP = player.Character.PrimaryPart:FindFirstChild(player.Name .. "_ESP")
+            if espEnabled then
+                if not existingESP then
+                    createESPBox(player)
+                else
+                    existingESP.Color3 = player.TeamColor.Color
+                end
+            elseif existingESP then
+                existingESP:Destroy()
+            end
+        end
+    end
+end
+
 -- Toggle functions
 local function toggleAimbot()
     aimbotEnabled = not aimbotEnabled
@@ -151,6 +198,12 @@ end
 local function toggleTeamCheck()
     teamCheckEnabled = not teamCheckEnabled
     teamCheckButton.Text = teamCheckEnabled and "Team Check: ON" or "Team Check: OFF"
+end
+
+local function toggleESP()
+    espEnabled = not espEnabled
+    espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+    updateESP()
 end
 
 local function toggleMinimize()
@@ -167,10 +220,12 @@ end
 -- Connect buttons
 aimbotButton.MouseButton1Click:Connect(toggleAimbot)
 teamCheckButton.MouseButton1Click:Connect(toggleTeamCheck)
+espButton.MouseButton1Click:Connect(toggleESP)
 minimizeButton.MouseButton1Click:Connect(toggleMinimize)
 minimizedButton.MouseButton1Click:Connect(toggleMinimize)
 
 -- Main update loop
 RunService.RenderStepped:Connect(function(deltaTime)
     updateAimbot(deltaTime)
+    updateESP()
 end)
