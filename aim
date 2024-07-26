@@ -189,14 +189,15 @@ local function refreshESP()
     end
 end
 
--- Simple Aimbot functionality
+-- Target Lock variables and functions
 local lockEnabled = false
-local lockFOV = 60 -- Field of View for aiming
-local aimSpeed = 0.1 -- Speed of aiming transition (lower is faster)
+local lockedPlayer = nil
+local aimFOV = 60  -- Field of View for aiming
+local aimSpeed = 0.1  -- Speed of aiming transition (lower is faster)
 
 local function getClosestPlayer()
     local closestPlayer = nil
-    local shortestDistance = lockFOV -- Adjust FOV to control how far the aimbot will work
+    local shortestDistance = math.huge
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -206,8 +207,9 @@ local function getClosestPlayer()
             if onScreen then
                 local mousePos = UserInputService:GetMouseLocation()
                 local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                local fovDistance = distance <= (aimFOV / 2)
                 
-                if distance < shortestDistance then
+                if fovDistance and distance < shortestDistance then
                     closestPlayer = player
                     shortestDistance = distance
                 end
@@ -225,17 +227,19 @@ local function smoothAim(targetPosition)
     
     RunService.RenderStepped:Connect(function()
         local elapsed = (tick() - startTime) / aimSpeed
-        Camera.CFrame = currentCFrame:Lerp(targetCFrame, math.clamp(elapsed, 0, 1))
+        Camera.CFrame = currentCFrame:Lerp(targetCFrame, elapsed)
     end)
 end
 
 local function updateTargetLock()
     if lockEnabled and LocalPlayer.Character then
-        local closestPlayer = getClosestPlayer()
-        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+        lockedPlayer = getClosestPlayer()
+        if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
             smoothAim(targetPosition)
         end
+    else
+        lockedPlayer = nil
     end
 end
 
