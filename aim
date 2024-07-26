@@ -66,7 +66,7 @@ local function update(input)
     minimizedButton.Position = frame.Position
 end
 
-frame.InputBegan:Connect(function(input)
+local function onInputBegan(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
@@ -78,19 +78,33 @@ frame.InputBegan:Connect(function(input)
             end
         end)
     end
-end)
+end
 
-frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
+local function onInputChanged(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         update(input)
     end
-end)
+end
+
+-- Function to start dragging
+local function startDragging(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = frame.Position
+end
+
+-- Function to stop dragging
+local function stopDragging()
+    dragging = false
+end
+
+frame.InputBegan:Connect(onInputBegan)
+frame.InputChanged:Connect(onInputChanged)
+UserInputService.InputChanged:Connect(onInputChanged)
+
+minimizedButton.InputBegan:Connect(onInputBegan)
+minimizedButton.InputChanged:Connect(onInputChanged)
+UserInputService.InputChanged:Connect(onInputChanged)
 
 -- ESP variables and functions
 local espEnabled = false
@@ -162,7 +176,6 @@ local function updateTargetLock()
         local lockedPlayer = getClosestPlayer()
         if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
-            local direction = (targetPosition - Camera.CFrame.Position).unit
             local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
 
             -- Smooth transition
