@@ -2,13 +2,12 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 120, 0, 100)
@@ -164,10 +163,10 @@ local function updateTargetLock()
         if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local targetPos = lockedPlayer.Character.HumanoidRootPart.Position
             local cameraPos = Camera.CFrame.Position
-            local lookAt = CFrame.new(cameraPos, targetPos)
+            local targetCFrame = CFrame.new(cameraPos, targetPos)
 
             -- Smoothly interpolate camera's CFrame to target position
-            Camera.CFrame = Camera.CFrame:Lerp(lookAt, smoothSpeed)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothSpeed)
         end
     else
         lockedPlayer = nil
