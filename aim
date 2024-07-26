@@ -54,7 +54,7 @@ minimizedButton.TextScaled = true
 minimizedButton.Visible = false
 minimizedButton.Parent = screenGui
 
--- Make GUI draggable
+-- Make GUI draggable (same as before)
 local dragging
 local dragInput
 local dragStart
@@ -66,7 +66,7 @@ local function update(input)
     minimizedButton.Position = frame.Position
 end
 
-local function onInputBegan(input)
+frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
@@ -78,35 +78,21 @@ local function onInputBegan(input)
             end
         end)
     end
-end
+end)
 
-local function onInputChanged(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
         update(input)
     end
-end
+end)
 
--- Function to start dragging
-local function startDragging(input)
-    dragging = true
-    dragStart = input.Position
-    startPos = frame.Position
-end
-
--- Function to stop dragging
-local function stopDragging()
-    dragging = false
-end
-
-frame.InputBegan:Connect(onInputBegan)
-frame.InputChanged:Connect(onInputChanged)
-UserInputService.InputChanged:Connect(onInputChanged)
-
-minimizedButton.InputBegan:Connect(onInputBegan)
-minimizedButton.InputChanged:Connect(onInputChanged)
-UserInputService.InputChanged:Connect(onInputChanged)
-
--- ESP variables and functions
+-- ESP variables and functions (same as before)
 local espEnabled = false
 local espObjects = {}
 
@@ -150,9 +136,9 @@ local function updateAllESP()
     end
 end
 
--- Aim lock variables and functions
+-- Target Lock variables and functions
 local lockEnabled = false
-local smoothness = 0.1  -- Smoothness of the aim lock
+local lockedPlayer = nil
 
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -173,16 +159,26 @@ end
 
 local function updateTargetLock()
     if lockEnabled and LocalPlayer.Character then
-        local lockedPlayer = getClosestPlayer()
+        lockedPlayer = getClosestPlayer()
         if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
-            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
-
-            -- Smooth transition
-            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothness)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, lockedPlayer.Character.HumanoidRootPart.Position)
         end
+    else
+        lockedPlayer = nil
     end
 end
+
+-- Connect to PlayerAdded event
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        updateESP(player)
+    end)
+end)
+
+-- Connect to PlayerRemoving event
+Players.PlayerRemoving:Connect(function(player)
+    removeESP(player)
+end)
 
 -- Toggle functions
 local function toggleESP()
