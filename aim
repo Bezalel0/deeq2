@@ -1,153 +1,110 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Camera = workspace.CurrentCamera
+minimizedButton.Visible = false
+minimizedButton.Parent = screenGui
 
--- Create GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 140, 0, 120) -- Smaller size for mobile
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.Position = UDim2.new(0.5, 0, 0.5, 0) -- Centered position
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = frame
-
-local function createButton(text, position)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -16, 0, 25) -- Smaller buttons
-    button.Position = position
-    button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    button.Text = text
-    button.TextColor3 = Color3.new(1, 1, 1)
-    button.TextScaled = true
-    button.Parent = frame
-    
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 4)
-    buttonCorner.Parent = button
-    
-    return button
-end
-
-local aimbotButton = createButton("Aimbot: OFF", UDim2.new(0, 8, 0, 5))
-local teamCheckButton = createButton("Team Check: OFF", UDim2.new(0, 8, 0, 35))
-local espButton = createButton("ESP: OFF", UDim2.new(0, 8, 0, 65))
-local minimizeButton = createButton("Minimize", UDim2.new(0, 8, 0, 95))
-
--- Dragging functionality
+-- Make GUI draggable
+-- Make GUI draggable (same as before)
 local dragging
 local dragInput
 local dragStart
-local startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+@@ -66,7 +66,7 @@ local function update(input)
+    minimizedButton.Position = frame.Position
 end
 
+local function onInputBegan(input)
 frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-        startPos = frame.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
+@@ -78,35 +78,21 @@ local function onInputBegan(input)
             end
         end)
     end
+end
 end)
 
+local function onInputChanged(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        update(input)
 frame.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         dragInput = input
     end
+end
+
+-- Function to start dragging
+local function startDragging(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = frame.Position
+end
+
+-- Function to stop dragging
+local function stopDragging()
+    dragging = false
+end
+
+frame.InputBegan:Connect(onInputBegan)
+frame.InputChanged:Connect(onInputChanged)
+UserInputService.InputChanged:Connect(onInputChanged)
 end)
 
+minimizedButton.InputBegan:Connect(onInputBegan)
+minimizedButton.InputChanged:Connect(onInputChanged)
+UserInputService.InputChanged:Connect(onInputChanged)
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         update(input)
     end
 end)
 
--- Aimbot and ESP functionality (as in the previous message)
--- ...
+-- ESP variables and functions
+-- ESP variables and functions (same as before)
+local espEnabled = false
+local espObjects = {}
 
--- Toggle functions
-local function toggleAimbot()
-    aimbotEnabled = not aimbotEnabled
-    aimbotButton.Text = aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
-end
-
-local function toggleTeamCheck()
-    teamCheckEnabled = not teamCheckEnabled
-    teamCheckButton.Text = teamCheckEnabled and "Team Check: ON" or "Team Check: OFF"
-end
-
-local function toggleESP()
-    espEnabled = not espEnabled
-    espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-    if espEnabled then
-        refreshESP()
-    else
-        for _, gui in pairs(espGuis) do
-            if gui and gui.Parent then
-                gui.Parent = nil
-            end
-        end
+@@ -150,9 +136,9 @@ local function updateAllESP()
     end
 end
 
--- Connect buttons
-aimbotButton.MouseButton1Click:Connect(toggleAimbot)
-teamCheckButton.MouseButton1Click:Connect(toggleTeamCheck)
-espButton.MouseButton1Click:Connect(toggleESP)
-minimizeButton.MouseButton1Click:Connect(function()
-    frame.Visible = false
-    -- Create a small button to restore the GUI
-    local restoreButton = Instance.new("TextButton")
-    restoreButton.Size = UDim2.new(0, 40, 0, 40)
-    restoreButton.Position = UDim2.new(1, -50, 0, 10)
-    restoreButton.AnchorPoint = Vector2.new(1, 0)
-    restoreButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    restoreButton.Text = "+"
-    restoreButton.TextColor3 = Color3.new(1, 1, 1)
-    restoreButton.TextScaled = true
-    restoreButton.Parent = screenGui
-    
-    local restoreCorner = Instance.new("UICorner")
-    restoreCorner.CornerRadius = UDim.new(0, 8)
-    restoreCorner.Parent = restoreButton
-    
-    restoreButton.MouseButton1Click:Connect(function()
-        frame.Visible = true
-        restoreButton:Destroy()
+-- Aim lock variables and functions
+-- Target Lock variables and functions
+local lockEnabled = false
+local smoothness = 0.1  -- Smoothness of the aim lock
+local lockedPlayer = nil
+
+local function getClosestPlayer()
+    local closestPlayer = nil
+@@ -173,17 +159,27 @@ end
+
+local function updateTargetLock()
+    if lockEnabled and LocalPlayer.Character then
+        local lockedPlayer = getClosestPlayer()
+        lockedPlayer = getClosestPlayer()
+        if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
+
+            -- Smooth transition
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothness)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, lockedPlayer.Character.HumanoidRootPart.Position)
+        end
+    else
+        lockedPlayer = nil
+    end
+end
+
+-- Connect to PlayerAdded event
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        updateESP(player)
     end)
 end)
 
--- Main update loop
-RunService.RenderStepped:Connect(function()
-    updateAimbot()
-    updateESP()
+-- Connect to PlayerRemoving event
+Players.PlayerRemoving:Connect(function(player)
+    removeESP(player)
 end)
 
--- Set up auto-refresh for ESP
-spawn(function()
-    while true do
-        wait(5)  -- Wait for 5 seconds
-        if espEnabled then
-            refreshESP()
-        end
-    end
-end)
+-- Toggle functions
+local function toggleESP()
+    espEnabled = not espEnabled
