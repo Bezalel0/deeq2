@@ -11,7 +11,7 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 140, 0, 130)
+frame.Size = UDim2.new(0, 160, 0, 180)
 frame.AnchorPoint = Vector2.new(1, 0)
 frame.Position = UDim2.new(1, -20, 0, 20)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -82,3 +82,206 @@ minimizedButton.Text = "+"
 minimizedButton.TextScaled = true
 minimizedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 minimizedButton.Font = Enum.Font.SourceSansBold
+minimizedButton.Visible = false
+minimizedButton.Parent = screenGui
+
+local UICornerMinimized = Instance.new("UICorner")
+UICornerMinimized.CornerRadius = UDim.new(0, 10)
+UICornerMinimized.Parent = minimizedButton
+
+local UIStrokeMinimized = Instance.new("UIStroke")
+UIStrokeMinimized.Thickness = 2
+UIStrokeMinimized.Color = Color3.fromRGB(60, 60, 60)
+UIStrokeMinimized.Parent = minimizedButton
+
+-- Make GUI draggable
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    minimizedButton.Position = frame.Position
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- ESP variables and functions
+local espEnabled = false
+local espObjects = {}
+
+local function updateESP(player)
+    if not espEnabled then return end
+    local character = player.Character
+    if not character then return end
+
+    local esp = espObjects[player]
+    if not esp then
+        esp = Instance.new("Highlight")
+        esp.FillColor = Color3.new(0, 1, 0)  -- Green color
+        esp.FillTransparency = 0.5
+        esp.OutlineColor = Color3.new(1, 1, 0)  -- Yellow outline
+        esp.OutlineTransparency = 0
+        esp.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop  -- Visible through walls
+        espObjects[player] = esp
+    end
+
+    esp.Adornee = character
+    esp.Parent = character
+end
+
+local function removeESP(player)
+    local esp = espObjects[player]
+    if esp then
+        esp:Destroy()
+        espObjects[player] = nil
+    end
+end
+
+local function updateAllESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if espEnabled then
+                updateESP(player)
+            else
+                removeESP(player)
+            end
+        end
+    end
+end
+
+local function refreshESP()
+    while espEnabled do
+        updateAllESP()
+        wait(5)
+    end
+end
+
+-- Target Lock variables and functions
+local lockEnabled = false
+local lockedPlayer = nil
+local aimFOV = 60  -- Field of View for aiming
+local aimSpeed = 0.1  -- Speed of aiming transition (lower is faster)
+
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local rootPart = player.Character.HumanoidRootPart
+            local screenPos, onScreen = Camera:WorldToScreenPoint(rootPart.Position)
+            
+            if onScreen then
+                local mousePos = UserInputService:GetMouseLocation()
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                local fovDistance = distance <= (aimFOV / 2)
+                
+                if fovDistance and distance < shortestDistance then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function smoothAim(targetPosition)
+    local currentCFrame = Camera.CFrame
+    local targetCFrame = CFrame.new(currentCFrame.Position, targetPosition)
+    local startTime = tick()
+    
+    RunService.RenderStepped:Connect(function()
+        if lockEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local elapsed = tick() - startTime
+            local alpha = math.min(elapsed / aimSpeed, 1)
+            Camera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
+        end
+    end)
+end
+
+local function updateTargetLock()
+    if lockEnabled and LocalPlayer.Character then
+        lockedPlayer = getClosestPlayer()
+        if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
+            smoothAim(targetPosition)
+        end
+    else
+        lockedPlayer = nil
+    end
+end
+
+-- Connect to PlayerAdded event
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        updateESP(player)
+    end)
+end)
+
+-- Connect to PlayerRemoving event
+Players.PlayerRemoving:Connect(function(player)
+    removeESP(player)
+end)
+
+-- Toggle functions
+local function toggleESP()
+    espEnabled = not espEnabled
+    espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+    if espEnabled then
+        refreshESP()
+    else
+        updateAllESP()
+    end
+end
+
+local function toggleLock()
+    lockEnabled = not lockEnabled
+    lockButton.Text = lockEnabled and "Lock: ON" or "Lock: OFF"
+end
+
+-- Minimize/Maximize function
+local function toggleMinimize()
+    frame.Visible = not frame.Visible
+    minimizedButton.Visible = not minimizedButton.Visible
+end
+
+-- Connect buttons
+espButton.MouseButton1Click:Connect(toggleESP)
+lockButton.MouseButton1Click:Connect(toggleLock)
+minimizeButton.MouseButton1Click:Connect(toggleMinimize)
+minimizedButton.MouseButton1Click:Connect(toggleMinimize)
+
+-- Main update loop
+RunService.RenderStepped:Connect(function()
+    updateAllESP()
+    updateTargetLock()
+end)
