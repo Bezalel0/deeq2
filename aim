@@ -2,12 +2,13 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+screenGui.Parent = PlayerGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 120, 0, 100)
@@ -135,10 +136,9 @@ local function updateAllESP()
     end
 end
 
--- Target Lock variables and functions
+-- Aim lock variables and functions
 local lockEnabled = false
-local lockedPlayer = nil
-local smoothSpeed = 0.1  -- Speed of the camera movement
+local smoothness = 0.1  -- Smoothness of the aim lock
 
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -159,31 +159,17 @@ end
 
 local function updateTargetLock()
     if lockEnabled and LocalPlayer.Character then
-        lockedPlayer = getClosestPlayer()
+        local lockedPlayer = getClosestPlayer()
         if lockedPlayer and lockedPlayer.Character and lockedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPos = lockedPlayer.Character.HumanoidRootPart.Position
-            local cameraPos = Camera.CFrame.Position
-            local targetCFrame = CFrame.new(cameraPos, targetPos)
+            local targetPosition = lockedPlayer.Character.HumanoidRootPart.Position
+            local direction = (targetPosition - Camera.CFrame.Position).unit
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
 
-            -- Smoothly interpolate camera's CFrame to target position
-            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothSpeed)
+            -- Smooth transition
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothness)
         end
-    else
-        lockedPlayer = nil
     end
 end
-
--- Connect to PlayerAdded event
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        updateESP(player)
-    end)
-end)
-
--- Connect to PlayerRemoving event
-Players.PlayerRemoving:Connect(function(player)
-    removeESP(player)
-end)
 
 -- Toggle functions
 local function toggleESP()
